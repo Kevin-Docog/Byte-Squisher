@@ -509,27 +509,43 @@ function loadScript(src){
 // it needs to be hosted rather than opened from file://.
 let ffmpegInstance = null;
 let ffmpegLoading = null;
+
 async function getFFmpeg(tool){
   if(ffmpegInstance) return ffmpegInstance;
   if(ffmpegLoading) return ffmpegLoading;
+
   ffmpegLoading = (async ()=>{
     setProgress(tool, 5, 'loading ffmpeg engine (first time only)…');
+
     await loadScript('https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js');
     await loadScript('https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js');
+
     const { FFmpeg } = FFmpegWASM;
     const ffmpeg = new FFmpeg();
     const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+
     ffmpeg.on('progress', ({progress})=>{
       const pct = Math.min(99, Math.round(progress*100));
       setProgress(tool, pct, 'encoding… ' + pct + '%');
     });
+
+    // ffmpeg.wasm 0.12 uses a separate worker file. Convert it to a Blob URL
+    // so the Worker is created from the page's origin instead of unpkg.com.
+    const workerURL = await FFmpegUtil.toBlobURL(
+      'https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/814.ffmpeg.js',
+      'text/javascript'
+    );
+
     await ffmpeg.load({
+      workerLoadURL: workerURL,
       coreURL: await FFmpegUtil.toBlobURL(baseURL + '/ffmpeg-core.js', 'text/javascript'),
-      wasmURL: await FFmpegUtil.toBlobURL(baseURL + '/ffmpeg-core.wasm', 'application/wasm'),
+      wasmURL: await FFmpegUtil.toBlobURL(baseURL + '/ffmpeg-core.wasm', 'application/wasm')
     });
+
     ffmpegInstance = ffmpeg;
     return ffmpeg;
   })();
+
   return ffmpegLoading;
 }
 
