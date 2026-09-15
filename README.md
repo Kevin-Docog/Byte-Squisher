@@ -2,7 +2,7 @@
 
 A single-file, fully offline compressor for images, audio, PDFs, and DOCX files. Every file goes in and comes back out as the **same file type** — a JPEG stays a JPEG, a PDF stays a PDF.
 
-Open `index.html` in any modern browser. That's the whole install — or [open website](https://kevin-docog.github.io/Byte-Squisher/) for a real icon and offline launch.
+Open `index.html` in any modern browser. That's the whole install — or [open website](https://kevin-docog.github.io/Byte-Squisher/) for a real use.
 
 ## What it looks like
 
