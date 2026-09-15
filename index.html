@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compressor — shrink files, locally</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0c1a27;
+    --bg-panel:#122540;
+    --bg-panel-2:#0f2036;
+    --grid:rgba(184,214,240,0.06);
+    --grid-strong:rgba(184,214,240,0.12);
+    --border:#254368;
+    --text:#e7eef5;
+    --text-dim:#7f99b3;
+    --amber:#ffb454;
+    --cyan:#6fc3ff;
+    --green:#7fd99a;
+    --red:#ff8a8a;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      linear-gradient(var(--grid) 1px, transparent 1px) 0 0/32px 32px,
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0/32px 32px,
+      var(--bg);
+    color:var(--text);
+    font-family:'Space Grotesk', sans-serif;
+    min-height:100vh;
+  }
+  .mono{font-family:'JetBrains Mono', monospace;}
+  ::selection{background:var(--amber);color:#0c1a27;}
+
+  .wrap{max-width:1100px;margin:0 auto;padding:28px 20px 60px;}
+
+  header{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    border-bottom:1px solid var(--border); padding-bottom:18px; margin-bottom:24px;
+    flex-wrap:wrap; gap:12px;
+  }
+  header .brand{display:flex; align-items:center; gap:12px;}
+  .mark{
+    width:38px;height:38px;border:1.5px solid var(--amber);position:relative;flex:none;
+  }
+  .mark::before,.mark::after{
+    content:"";position:absolute;background:var(--amber);
+  }
+  .mark::before{ left:6px; right:6px; top:50%; height:1.5px; transform:translateY(-50%);}
+  .mark::after{ top:6px; bottom:6px; left:50%; width:1.5px; transform:translateX(-50%);}
+  h1{font-size:1.5rem; margin:0; font-weight:600; letter-spacing:0.01em;}
+  header p{margin:2px 0 0; color:var(--text-dim); font-size:0.88rem;}
+  .badge{
+    font-family:'JetBrains Mono', monospace; font-size:0.72rem; color:var(--cyan);
+    border:1px solid var(--border); padding:5px 10px; white-space:nowrap;
+  }
+
+  .layout{display:grid; grid-template-columns:180px 1fr; gap:20px;}
+  @media (max-width:720px){ .layout{grid-template-columns:1fr;} }
+
+  nav.rail{display:flex; flex-direction:column; gap:6px;}
+  .tab{
+    text-align:left; background:var(--bg-panel-2); border:1px solid var(--border);
+    color:var(--text-dim); padding:14px 14px; cursor:pointer; font-family:'JetBrains Mono', monospace;
+    font-size:0.8rem; letter-spacing:0.03em; position:relative;
+  }
+  .tab .num{color:var(--amber); margin-right:8px;}
+  .tab:hover{ color:var(--text); border-color:#345a86; }
+  .tab.active{ background:var(--bg-panel); color:var(--text); border-color:var(--amber); }
+  .tab.active::before{
+    content:""; position:absolute; left:-1px; top:-1px; bottom:-1px; width:3px; background:var(--amber);
+  }
+  nav.rail .tab .sub{display:block; color:var(--text-dim); font-size:0.68rem; margin-top:3px; font-family:'Space Grotesk',sans-serif;}
+
+  main{ min-width:0; }
+  .panel{
+    background:var(--bg-panel); border:1px solid var(--border); padding:24px;
+    position:relative;
+  }
+  .panel::before,.panel::after,.corner-tl,.corner-br{
+    content:""; position:absolute; width:10px; height:10px; border-color:var(--cyan); opacity:0.6;
+  }
+  .panel::before{ top:-1px; left:-1px; border-top:1.5px solid var(--cyan); border-left:1.5px solid var(--cyan);}
+  .panel::after{ bottom:-1px; right:-1px; border-bottom:1.5px solid var(--cyan); border-right:1.5px solid var(--cyan);}
+
+  .panel h2{margin:0 0 4px; font-size:1.05rem; font-weight:600;}
+  .panel .desc{color:var(--text-dim); font-size:0.85rem; margin:0 0 20px; max-width:60ch; line-height:1.5;}
+
+  .drop{
+    border:1.5px dashed var(--border); padding:34px 20px; text-align:center; cursor:pointer;
+    transition:border-color .15s, background .15s;
+  }
+  .drop.drag{ border-color:var(--amber); background:rgba(255,180,84,0.05); }
+  .drop .icon{font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:var(--cyan); margin-bottom:10px;}
+  .drop p{margin:0; color:var(--text-dim); font-size:0.85rem;}
+  .drop input{display:none;}
+
+  .filecard{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    border:1px solid var(--border); padding:12px 14px; margin-top:16px; background:var(--bg-panel-2);
+    font-family:'JetBrains Mono',monospace; font-size:0.78rem;
+  }
+  .filecard .name{color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .filecard .size{color:var(--text-dim); flex:none;}
+  .filecard button.clear{
+    background:none; border:1px solid var(--border); color:var(--text-dim); cursor:pointer;
+    padding:4px 8px; font-family:inherit; flex:none;
+  }
+  .filecard button.clear:hover{ color:var(--red); border-color:var(--red); }
+
+  .settings{ margin-top:20px; display:grid; gap:16px; }
+  .field label{ display:block; font-size:0.78rem; color:var(--text-dim); margin-bottom:8px; font-family:'JetBrains Mono',monospace; }
+  .field label .val{ color:var(--amber); }
+  .row{ display:flex; gap:16px; flex-wrap:wrap; }
+  .row .field{ flex:1; min-width:160px; }
+
+  input[type=range]{
+    -webkit-appearance:none; width:100%; height:2px; background:var(--border); outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:14px; height:14px; background:var(--amber); border-radius:50%; cursor:pointer;
+    border:2px solid var(--bg-panel);
+  }
+  select{
+    width:100%; background:var(--bg-panel-2); color:var(--text); border:1px solid var(--border);
+    padding:10px; font-family:'JetBrains Mono',monospace; font-size:0.8rem;
+  }
+  .segmented{ display:flex; border:1px solid var(--border); }
+  .segmented button{
+    flex:1; background:none; border:none; color:var(--text-dim); padding:9px 10px; cursor:pointer;
+    font-family:'JetBrains Mono',monospace; font-size:0.75rem; border-right:1px solid var(--border);
+  }
+  .segmented button:last-child{ border-right:none; }
+  .segmented button.active{ background:var(--amber); color:#0c1a27; }
+
+  .go{
+    margin-top:22px; width:100%; background:var(--amber); color:#0c1a27; border:none;
+    padding:14px; font-family:'JetBrains Mono',monospace; font-weight:600; font-size:0.85rem;
+    letter-spacing:0.04em; cursor:pointer;
+  }
+  .go:disabled{ background:var(--border); color:var(--text-dim); cursor:not-allowed; }
+  .go:not(:disabled):hover{ background:#ffc57a; }
+
+  .progress{ margin-top:16px; display:none; }
+  .progress.show{ display:block; }
+  .progress .bar{ height:4px; background:var(--bg-panel-2); border:1px solid var(--border); overflow:hidden; }
+  .progress .bar > div{ height:100%; width:0%; background:var(--cyan); transition:width .2s; }
+  .progress .label{ margin-top:8px; font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:var(--text-dim); }
+
+  .result{
+    margin-top:20px; border:1px solid var(--green); background:rgba(127,217,154,0.06); padding:16px; display:none;
+  }
+  .result.show{ display:block; }
+  .result .stats{ display:flex; gap:24px; flex-wrap:wrap; font-family:'JetBrains Mono',monospace; }
+  .result .stat .k{ color:var(--text-dim); font-size:0.68rem; display:block; margin-bottom:3px;}
+  .result .stat .v{ color:var(--text); font-size:1.1rem; }
+  .result .stat .v.hi{ color:var(--green); }
+  .result a.dl{
+    display:inline-block; margin-top:14px; background:var(--green); color:#0c1a27; text-decoration:none;
+    padding:10px 16px; font-family:'JetBrains Mono',monospace; font-size:0.78rem; font-weight:600;
+  }
+  .err{ margin-top:16px; border:1px solid var(--red); background:rgba(255,138,138,0.06); padding:12px 14px;
+    font-family:'JetBrains Mono',monospace; font-size:0.78rem; color:var(--red); display:none; }
+  .err.show{ display:block; }
+
+  footer{ margin-top:34px; padding-top:16px; border-top:1px solid var(--border); color:var(--text-dim);
+    font-size:0.78rem; line-height:1.6; }
+  footer strong{ color:var(--text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="mark"></div>
+      <div>
+        <h1>Compressor</h1>
+        <p>Image · Video · Audio · PDF · DOCX — runs entirely in your browser</p>
+      </div>
+    </div>
+    <div class="badge">NO UPLOAD · CLIENT-SIDE</div>
+  </header>
+
+  <div class="layout">
+    <nav class="rail">
+      <button class="tab active" data-tab="image"><span class="num">01</span>IMAGE<span class="sub">jpg · png · webp</span></button>
+      <button class="tab" data-tab="video"><span class="num">02</span>VIDEO<span class="sub">mp4 · webm · mov</span></button>
+      <button class="tab" data-tab="audio"><span class="num">03</span>AUDIO<span class="sub">mp3 · wav · m4a</span></button>
+      <button class="tab" data-tab="pdf"><span class="num">04</span>PDF<span class="sub">documents</span></button>
+      <button class="tab" data-tab="docx"><span class="num">05</span>DOCX<span class="sub">word files</span></button>
+    </nav>
+
+    <main>
+      <!-- IMAGE -->
+      <section class="panel" id="panel-image">
+        <h2>Image compressor</h2>
+        <p class="desc">Re-encodes your image at a lower quality and/or smaller dimensions using the canvas API. Nothing leaves your device.</p>
+        <div id="drop-image" class="drop">
+          <div class="icon">[ + ]</div>
+          <p>Drop an image here, or tap to choose one</p>
+          <input type="file" id="input-image" accept="image/*">
+        </div>
+        <div id="filecard-image"></div>
+        <div class="settings" id="settings-image" style="display:none">
+          <div class="field">
+            <label>Quality — <span class="val" id="val-image-quality">70</span>%</label>
+            <input type="range" id="image-quality" min="10" max="100" value="70">
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Output format</label>
+              <select id="image-format">
+                <option value="image/jpeg">JPEG</option>
+                <option value="image/webp">WebP (smaller)</option>
+                <option value="image/png">PNG (lossless)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Max width — <span class="val" id="val-image-width">no limit</span></label>
+              <input type="range" id="image-width" min="200" max="4000" value="4000" step="50">
+            </div>
+          </div>
+        </div>
+        <button class="go" id="go-image" disabled>COMPRESS IMAGE</button>
+        <div class="progress" id="progress-image"><div class="bar"><div></div></div><div class="label">working…</div></div>
+        <div class="result" id="result-image"></div>
+        <div class="err" id="err-image"></div>
+      </section>
+
+      <!-- VIDEO -->
+      <section class="panel" id="panel-video" style="display:none">
+        <h2>Video compressor</h2>
+        <p class="desc">Uses ffmpeg compiled to WebAssembly (ffmpeg.wasm) to re-encode video with H.264 at a target quality — the same engine as the offline ffmpeg CLI, running locally in the page. Always outputs MP4. Needs to be hosted over https (not opened from a local file) — see hosting notes below.</p>
+        <div id="drop-video" class="drop">
+          <div class="icon">[ + ]</div>
+          <p>Drop a video here, or tap to choose one</p>
+          <input type="file" id="input-video" accept="video/*">
+        </div>
+        <div id="filecard-video"></div>
+        <div class="settings" id="settings-video" style="display:none">
+          <div class="field">
+            <label>Compression strength</label>
+            <div class="segmented" id="video-crf">
+              <button data-v="20">LIGHT</button>
+              <button data-v="26" class="active">BALANCED</button>
+              <button data-v="32">STRONG</button>
+              <button data-v="38">MAX</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Scale down to — <span class="val" id="val-video-scale">original size</span></label>
+            <select id="video-scale">
+              <option value="0">Original size</option>
+              <option value="1080">1080p</option>
+              <option value="720">720p</option>
+              <option value="480">480p</option>
+            </select>
+          </div>
+        </div>
+        <button class="go" id="go-video" disabled>COMPRESS VIDEO</button>
+        <div class="progress" id="progress-video"><div class="bar"><div></div></div><div class="label">loading engine…</div></div>
+        <div class="result" id="result-video"></div>
+        <div class="err" id="err-video"></div>
+      </section>
+
+      <!-- AUDIO -->
+      <section class="panel" id="panel-audio" style="display:none">
+        <h2>Audio compressor</h2>
+        <p class="desc">Also powered by ffmpeg.wasm. Re-encodes to a lower bitrate, always outputting a real MP3.</p>
+        <div id="drop-audio" class="drop">
+          <div class="icon">[ + ]</div>
+          <p>Drop an audio file here, or tap to choose one</p>
+          <input type="file" id="input-audio" accept="audio/*">
+        </div>
+        <div id="filecard-audio"></div>
+        <div class="settings" id="settings-audio" style="display:none">
+          <div class="field">
+            <label>Bitrate</label>
+            <div class="segmented" id="audio-bitrate">
+              <button data-v="192">192 kbps</button>
+              <button data-v="128" class="active">128 kbps</button>
+              <button data-v="96">96 kbps</button>
+              <button data-v="64">64 kbps</button>
+            </div>
+          </div>
+        </div>
+        <button class="go" id="go-audio" disabled>COMPRESS AUDIO</button>
+        <div class="progress" id="progress-audio"><div class="bar"><div></div></div><div class="label">loading engine…</div></div>
+        <div class="result" id="result-audio"></div>
+        <div class="err" id="err-audio"></div>
+      </section>
+
+      <!-- PDF -->
+      <section class="panel" id="panel-pdf" style="display:none">
+        <h2>PDF compressor</h2>
+        <p class="desc">Standard mode re-saves the PDF with optimized internal structure — safe, text stays selectable, modest savings. Aggressive mode rasterizes each page as a compressed image, which shrinks scanned/image-heavy PDFs a lot more but text is no longer selectable.</p>
+        <div id="drop-pdf" class="drop">
+          <div class="icon">[ + ]</div>
+          <p>Drop a PDF here, or tap to choose one</p>
+          <input type="file" id="input-pdf" accept="application/pdf">
+        </div>
+        <div id="filecard-pdf"></div>
+        <div class="settings" id="settings-pdf" style="display:none">
+          <div class="field">
+            <label>Mode</label>
+            <div class="segmented" id="pdf-mode">
+              <button data-v="standard" class="active">STANDARD</button>
+              <button data-v="aggressive">AGGRESSIVE</button>
+            </div>
+          </div>
+          <div class="field" id="pdf-quality-field" style="display:none">
+            <label>Image quality — <span class="val" id="val-pdf-quality">55</span>%</label>
+            <input type="range" id="pdf-quality" min="20" max="90" value="55">
+          </div>
+        </div>
+        <button class="go" id="go-pdf" disabled>COMPRESS PDF</button>
+        <div class="progress" id="progress-pdf"><div class="bar"><div></div></div><div class="label">working…</div></div>
+        <div class="result" id="result-pdf"></div>
+        <div class="err" id="err-pdf"></div>
+      </section>
+
+      <!-- DOCX -->
+      <section class="panel" id="panel-docx" style="display:none">
+        <h2>DOCX compressor</h2>
+        <p class="desc">A .docx file is a zip of XML and media. This re-encodes any embedded images at a lower quality and repacks the zip at maximum compression — text and formatting are untouched.</p>
+        <div id="drop-docx" class="drop">
+          <div class="icon">[ + ]</div>
+          <p>Drop a .docx file here, or tap to choose one</p>
+          <input type="file" id="input-docx" accept=".docx">
+        </div>
+        <div id="filecard-docx"></div>
+        <div class="settings" id="settings-docx" style="display:none">
+          <div class="field">
+            <label>Image quality — <span class="val" id="val-docx-quality">65</span>%</label>
+            <input type="range" id="docx-quality" min="20" max="95" value="65">
+          </div>
+        </div>
+        <button class="go" id="go-docx" disabled>COMPRESS DOCX</button>
+        <div class="progress" id="progress-docx"><div class="bar"><div></div></div><div class="label">working…</div></div>
+        <div class="result" id="result-docx"></div>
+        <div class="err" id="err-docx"></div>
+      </section>
+
+      <footer>
+        <strong>How this runs:</strong> every compression step happens on your device — files are never uploaded anywhere. Image uses only the canvas API, no internet needed. Video and Audio use ffmpeg.wasm — real ffmpeg compiled to WebAssembly — which needs a proper <span class="mono">https://</span> origin (this is why it must be hosted, e.g. on GitHub Pages, rather than opened as a local file). PDF and DOCX use pdf.js/pdf-lib and JSZip. All of these load from a CDN the first time you use them. If you host this page alongside its <span class="mono">sw.js</span> file, a service worker caches the page and every helper library the first time you visit while online, then serves it all from that cache on every visit after — including Video and Audio — with or without internet.
+      </footer>
+    </main>
+  </div>
+</div>
+
+<script>
+// ---------- helpers ----------
+function fmtBytes(b){
+  if(b < 1024) return b + ' B';
+  if(b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  return (b/(1024*1024)).toFixed(2) + ' MB';
+}
+function showErr(tool, msg){
+  const el = document.getElementById('err-'+tool);
+  el.textContent = msg;
+  el.classList.add('show');
+}
+function clearErr(tool){
+  document.getElementById('err-'+tool).classList.remove('show');
+}
+function setProgress(tool, pct, label){
+  const wrap = document.getElementById('progress-'+tool);
+  wrap.classList.add('show');
+  wrap.querySelector('.bar > div').style.width = pct+'%';
+  if(label) wrap.querySelector('.label').textContent = label;
+}
+function hideProgress(tool){
+  document.getElementById('progress-'+tool).classList.remove('show');
+}
+function showResult(tool, originalSize, newSize, blob, filename){
+  const el = document.getElementById('result-'+tool);
+  const pct = Math.max(0, Math.round((1 - newSize/originalSize) * 100));
+  const url = URL.createObjectURL(blob);
+  el.innerHTML = `
+    <div class="stats">
+      <div class="stat"><span class="k">ORIGINAL</span><span class="v">${fmtBytes(originalSize)}</span></div>
+      <div class="stat"><span class="k">COMPRESSED</span><span class="v hi">${fmtBytes(newSize)}</span></div>
+      <div class="stat"><span class="k">SAVED</span><span class="v hi">${pct}%</span></div>
+    </div>
+    <a class="dl" href="${url}" download="${filename}">DOWNLOAD RESULT</a>
+  `;
+  el.classList.add('show');
+}
+
+// ---------- tabs ----------
+document.querySelectorAll('.tab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('main > section').forEach(s=>s.style.display='none');
+    btn.classList.add('active');
+    document.getElementById('panel-'+btn.dataset.tab).style.display='block';
+  });
+});
+
+// ---------- generic dropzone wiring ----------
+function wireDrop(tool, onFile){
+  const drop = document.getElementById('drop-'+tool);
+  const input = document.getElementById('input-'+tool);
+  drop.addEventListener('click', ()=>input.click());
+  drop.addEventListener('dragover', e=>{ e.preventDefault(); drop.classList.add('drag'); });
+  drop.addEventListener('dragleave', ()=> drop.classList.remove('drag'));
+  drop.addEventListener('drop', e=>{
+    e.preventDefault(); drop.classList.remove('drag');
+    if(e.dataTransfer.files.length) onFile(e.dataTransfer.files[0]);
+  });
+  input.addEventListener('change', e=>{
+    if(e.target.files.length) onFile(e.target.files[0]);
+  });
+}
+function renderFileCard(tool, file, onClear){
+  const el = document.getElementById('filecard-'+tool);
+  el.innerHTML = `
+    <div class="filecard">
+      <span class="name">${file.name}</span>
+      <span class="size">${fmtBytes(file.size)}</span>
+      <button class="clear">CLEAR</button>
+    </div>`;
+  el.querySelector('.clear').addEventListener('click', onClear);
+}
+
+// ===================== IMAGE =====================
+(function(){
+  let currentFile = null;
+  const qSlider = document.getElementById('image-quality');
+  const wSlider = document.getElementById('image-width');
+  qSlider.addEventListener('input', ()=> document.getElementById('val-image-quality').textContent = qSlider.value);
+  wSlider.addEventListener('input', ()=>{
+    document.getElementById('val-image-width').textContent = wSlider.value >= 4000 ? 'no limit' : wSlider.value+'px';
+  });
+
+  function reset(){
+    currentFile = null;
+    document.getElementById('filecard-image').innerHTML='';
+    document.getElementById('settings-image').style.display='none';
+    document.getElementById('go-image').disabled = true;
+    document.getElementById('result-image').classList.remove('show');
+    clearErr('image');
+  }
+  wireDrop('image', file=>{
+    reset();
+    currentFile = file;
+    renderFileCard('image', file, reset);
+    document.getElementById('settings-image').style.display='grid';
+    document.getElementById('go-image').disabled = false;
+  });
+
+  document.getElementById('go-image').addEventListener('click', async ()=>{
+    if(!currentFile) return;
+    clearErr('image');
+    const btn = document.getElementById('go-image');
+    btn.disabled = true;
+    setProgress('image', 40, 'encoding…');
+    try{
+      const img = await new Promise((res, rej)=>{
+        const i = new Image();
+        i.onload = ()=>res(i);
+        i.onerror = rej;
+        i.src = URL.createObjectURL(currentFile);
+      });
+      let w = img.naturalWidth, h = img.naturalHeight;
+      const maxW = parseInt(wSlider.value, 10);
+      if(maxW < 4000 && w > maxW){
+        h = Math.round(h * (maxW / w));
+        w = maxW;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const format = document.getElementById('image-format').value;
+      const quality = parseInt(qSlider.value,10)/100;
+      const blob = await new Promise(res=> canvas.toBlob(res, format, quality));
+      setProgress('image', 100, 'done');
+      hideProgress('image');
+      const ext = format === 'image/jpeg' ? 'jpg' : format === 'image/webp' ? 'webp' : 'png';
+      const outName = currentFile.name.replace(/\.[^.]+$/, '') + '-compressed.' + ext;
+      showResult('image', currentFile.size, blob.size, blob, outName);
+    }catch(e){
+      hideProgress('image');
+      showErr('image', 'Could not compress that image: ' + e.message);
+    }finally{
+      btn.disabled = false;
+    }
+  });
+})();
+
+// shared script loader (still used by PDF/DOCX helper libraries)
+function loadScript(src){
+  return new Promise((res, rej)=>{
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = ()=>rej(new Error('Failed to load '+src));
+    document.head.appendChild(s);
+  });
+}
+
+// ===================== FFMPEG ENGINE (shared by video + audio) =====================
+// Real ffmpeg compiled to WebAssembly — gives full codec control (H.264 MP4,
+// real MP3) on every browser. Requires a proper https:// origin (or
+// localhost) because it loads a Worker from the CDN core files; this is why
+// it needs to be hosted rather than opened from file://.
+let ffmpegInstance = null;
+let ffmpegLoading = null;
+async function getFFmpeg(tool){
+  if(ffmpegInstance) return ffmpegInstance;
+  if(ffmpegLoading) return ffmpegLoading;
+  ffmpegLoading = (async ()=>{
+    setProgress(tool, 5, 'loading ffmpeg engine (first time only)…');
+    await loadScript('https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js');
+    await loadScript('https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js');
+    const { FFmpeg } = FFmpegWASM;
+    const ffmpeg = new FFmpeg();
+    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+    ffmpeg.on('progress', ({progress})=>{
+      const pct = Math.min(99, Math.round(progress*100));
+      setProgress(tool, pct, 'encoding… ' + pct + '%');
+    });
+    await ffmpeg.load({
+      coreURL: await FFmpegUtil.toBlobURL(baseURL + '/ffmpeg-core.js', 'text/javascript'),
+      wasmURL: await FFmpegUtil.toBlobURL(baseURL + '/ffmpeg-core.wasm', 'application/wasm'),
+    });
+    ffmpegInstance = ffmpeg;
+    return ffmpeg;
+  })();
+  return ffmpegLoading;
+}
+
+// ===================== VIDEO =====================
+(function(){
+  let currentFile = null;
+  document.querySelectorAll('#video-crf button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      document.querySelectorAll('#video-crf button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+    });
+  });
+  document.getElementById('video-scale').addEventListener('change', e=>{
+    document.getElementById('val-video-scale').textContent = e.target.value==='0' ? 'original size' : e.target.value+'p';
+  });
+
+  function reset(){
+    currentFile = null;
+    document.getElementById('filecard-video').innerHTML='';
+    document.getElementById('settings-video').style.display='none';
+    document.getElementById('go-video').disabled = true;
+    document.getElementById('result-video').classList.remove('show');
+    clearErr('video');
+  }
+  wireDrop('video', file=>{
+    reset();
+    currentFile = file;
+    renderFileCard('video', file, reset);
+    document.getElementById('settings-video').style.display='grid';
+    document.getElementById('go-video').disabled = false;
+  });
+
+  document.getElementById('go-video').addEventListener('click', async ()=>{
+    if(!currentFile) return;
+    clearErr('video');
+    const btn = document.getElementById('go-video');
+    btn.disabled = true;
+    try{
+      const ffmpeg = await getFFmpeg('video');
+      setProgress('video', 10, 'reading file…');
+      const inName = 'in_' + currentFile.name.replace(/[^a-zA-Z0-9.]/g,'_');
+      const outName = 'output.mp4';
+      await ffmpeg.writeFile(inName, await FFmpegUtil.fetchFile(currentFile));
+      const crf = document.querySelector('#video-crf button.active').dataset.v;
+      const scale = document.getElementById('video-scale').value;
+      const args = ['-i', inName, '-c:v', 'libx264', '-crf', crf, '-preset', 'faster', '-c:a', 'aac', '-b:a', '128k'];
+      if(scale !== '0'){
+        args.push('-vf', `scale=-2:${scale}`);
+      }
+      args.push(outName);
+      setProgress('video', 15, 'encoding…');
+      await ffmpeg.exec(args);
+      const data = await ffmpeg.readFile(outName);
+      const blob = new Blob([data.buffer], {type:'video/mp4'});
+      await ffmpeg.deleteFile(inName);
+      await ffmpeg.deleteFile(outName);
+      hideProgress('video');
+      const outFilename = currentFile.name.replace(/\.[^.]+$/, '') + '-compressed.mp4';
+      showResult('video', currentFile.size, blob.size, blob, outFilename);
+    }catch(e){
+      hideProgress('video');
+      showErr('video', 'Could not compress that video: ' + e.message);
+    }finally{
+      btn.disabled = false;
+    }
+  });
+})();
+
+// ===================== AUDIO =====================
+(function(){
+  let currentFile = null;
+  document.querySelectorAll('#audio-bitrate button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      document.querySelectorAll('#audio-bitrate button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+    });
+  });
+
+  function reset(){
+    currentFile = null;
+    document.getElementById('filecard-audio').innerHTML='';
+    document.getElementById('settings-audio').style.display='none';
+    document.getElementById('go-audio').disabled = true;
+    document.getElementById('result-audio').classList.remove('show');
+    clearErr('audio');
+  }
+  wireDrop('audio', file=>{
+    reset();
+    currentFile = file;
+    renderFileCard('audio', file, reset);
+    document.getElementById('settings-audio').style.display='grid';
+    document.getElementById('go-audio').disabled = false;
+  });
+
+  document.getElementById('go-audio').addEventListener('click', async ()=>{
+    if(!currentFile) return;
+    clearErr('audio');
+    const btn = document.getElementById('go-audio');
+    btn.disabled = true;
+    try{
+      const ffmpeg = await getFFmpeg('audio');
+      setProgress('audio', 10, 'reading file…');
+      const inName = 'in_' + currentFile.name.replace(/[^a-zA-Z0-9.]/g,'_');
+      const outName = 'output.mp3';
+      await ffmpeg.writeFile(inName, await FFmpegUtil.fetchFile(currentFile));
+      const bitrate = document.querySelector('#audio-bitrate button.active').dataset.v;
+      setProgress('audio', 15, 'encoding…');
+      await ffmpeg.exec(['-i', inName, '-b:a', bitrate+'k', outName]);
+      const data = await ffmpeg.readFile(outName);
+      const blob = new Blob([data.buffer], {type:'audio/mpeg'});
+      await ffmpeg.deleteFile(inName);
+      await ffmpeg.deleteFile(outName);
+      hideProgress('audio');
+      const outFilename = currentFile.name.replace(/\.[^.]+$/, '') + '-compressed.mp3';
+      showResult('audio', currentFile.size, blob.size, blob, outFilename);
+    }catch(e){
+      hideProgress('audio');
+      showErr('audio', 'Could not compress that audio file: ' + e.message);
+    }finally{
+      btn.disabled = false;
+    }
+  });
+})();
+
+// ===================== PDF =====================
+(function(){
+  let currentFile = null;
+  let pdfLibLoaded = false, pdfJsLoaded = false, jsPdfLoaded = false;
+
+  document.querySelectorAll('#pdf-mode button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      document.querySelectorAll('#pdf-mode button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      document.getElementById('pdf-quality-field').style.display = b.dataset.v === 'aggressive' ? 'block' : 'none';
+    });
+  });
+  document.getElementById('pdf-quality').addEventListener('input', e=>{
+    document.getElementById('val-pdf-quality').textContent = e.target.value;
+  });
+
+  function reset(){
+    currentFile = null;
+    document.getElementById('filecard-pdf').innerHTML='';
+    document.getElementById('settings-pdf').style.display='none';
+    document.getElementById('go-pdf').disabled = true;
+    document.getElementById('result-pdf').classList.remove('show');
+    clearErr('pdf');
+  }
+  wireDrop('pdf', file=>{
+    reset();
+    currentFile = file;
+    renderFileCard('pdf', file, reset);
+    document.getElementById('settings-pdf').style.display='grid';
+    document.getElementById('go-pdf').disabled = false;
+  });
+
+  async function ensurePdfLib(){
+    if(!pdfLibLoaded){
+      await loadScript('https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js');
+      pdfLibLoaded = true;
+    }
+  }
+  async function ensurePdfJs(){
+    if(!pdfJsLoaded){
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      pdfJsLoaded = true;
+    }
+  }
+  async function ensureJsPdf(){
+    if(!jsPdfLoaded){
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+      jsPdfLoaded = true;
+    }
+  }
+
+  async function compressStandard(file){
+    await ensurePdfLib();
+    const bytes = await file.arrayBuffer();
+    const doc = await PDFLib.PDFDocument.load(bytes, {updateMetadata:false});
+    const out = await doc.save({useObjectStreams:true});
+    return new Blob([out], {type:'application/pdf'});
+  }
+
+  async function compressAggressive(file, quality){
+    await ensurePdfJs();
+    await ensureJsPdf();
+    const bytes = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: bytes}).promise;
+    const { jsPDF } = window.jspdf;
+    let outDoc = null;
+    for(let i=1; i<=pdf.numPages; i++){
+      setProgress('pdf', Math.round((i/pdf.numPages)*90), `rendering page ${i}/${pdf.numPages}…`);
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({scale: 1.5});
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width; canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d');
+      await page.render({canvasContext: ctx, viewport}).promise;
+      const imgData = canvas.toDataURL('image/jpeg', quality/100);
+      const orient = viewport.width > viewport.height ? 'l' : 'p';
+      const sizePt = [viewport.width * 0.75, viewport.height * 0.75]; // px->pt approx
+      if(!outDoc){
+        outDoc = new jsPDF({orientation: orient, unit:'pt', format: sizePt});
+      }else{
+        outDoc.addPage(sizePt, orient);
+      }
+      outDoc.addImage(imgData, 'JPEG', 0, 0, sizePt[0], sizePt[1]);
+    }
+    const blob = outDoc.output('blob');
+    return blob;
+  }
+
+  document.getElementById('go-pdf').addEventListener('click', async ()=>{
+    if(!currentFile) return;
+    clearErr('pdf');
+    const btn = document.getElementById('go-pdf');
+    btn.disabled = true;
+    setProgress('pdf', 10, 'working…');
+    try{
+      const mode = document.querySelector('#pdf-mode button.active').dataset.v;
+      let blob;
+      if(mode === 'standard'){
+        blob = await compressStandard(currentFile);
+      }else{
+        const quality = parseInt(document.getElementById('pdf-quality').value, 10);
+        blob = await compressAggressive(currentFile, quality);
+      }
+      hideProgress('pdf');
+      const outFilename = currentFile.name.replace(/\.[^.]+$/, '') + '-compressed.pdf';
+      showResult('pdf', currentFile.size, blob.size, blob, outFilename);
+    }catch(e){
+      hideProgress('pdf');
+      showErr('pdf', 'Could not compress that PDF: ' + e.message);
+    }finally{
+      btn.disabled = false;
+    }
+  });
+})();
+
+// ===================== DOCX =====================
+(function(){
+  let currentFile = null;
+  let jsZipLoaded = false;
+
+  document.getElementById('docx-quality').addEventListener('input', e=>{
+    document.getElementById('val-docx-quality').textContent = e.target.value;
+  });
+
+  function reset(){
+    currentFile = null;
+    document.getElementById('filecard-docx').innerHTML='';
+    document.getElementById('settings-docx').style.display='none';
+    document.getElementById('go-docx').disabled = true;
+    document.getElementById('result-docx').classList.remove('show');
+    clearErr('docx');
+  }
+  wireDrop('docx', file=>{
+    reset();
+    currentFile = file;
+    renderFileCard('docx', file, reset);
+    document.getElementById('settings-docx').style.display='grid';
+    document.getElementById('go-docx').disabled = false;
+  });
+
+  async function ensureJsZip(){
+    if(!jsZipLoaded){
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+      jsZipLoaded = true;
+    }
+  }
+
+  async function recompressImage(blob, quality){
+    const url = URL.createObjectURL(blob);
+    try{
+      const img = await new Promise((res, rej)=>{
+        const i = new Image();
+        i.onload = ()=>res(i);
+        i.onerror = rej;
+        i.src = url;
+      });
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const outBlob = await new Promise(res=> canvas.toBlob(res, 'image/jpeg', quality));
+      return outBlob;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  document.getElementById('go-docx').addEventListener('click', async ()=>{
+    if(!currentFile) return;
+    clearErr('docx');
+    const btn = document.getElementById('go-docx');
+    btn.disabled = true;
+    setProgress('docx', 10, 'unpacking…');
+    try{
+      await ensureJsZip();
+      const quality = parseInt(document.getElementById('docx-quality').value, 10) / 100;
+      const zip = await JSZip.loadAsync(currentFile);
+      const mediaFiles = Object.keys(zip.files).filter(name =>
+        /^word\/media\/.+\.(jpe?g|png)$/i.test(name)
+      );
+      let done = 0;
+      for(const name of mediaFiles){
+        const entry = zip.files[name];
+        const blob = await entry.async('blob');
+        try{
+          const compressed = await recompressImage(blob, quality);
+          if(compressed && compressed.size < blob.size){
+            zip.file(name, compressed);
+          }
+        }catch(imgErr){ /* skip images that fail to decode (e.g. wmf/emf) */ }
+        done++;
+        setProgress('docx', 10 + Math.round((done/Math.max(1,mediaFiles.length))*80), `re-encoding images ${done}/${mediaFiles.length}…`);
+      }
+      setProgress('docx', 95, 'repacking…');
+      const out = await zip.generateAsync({
+        type:'blob',
+        compression:'DEFLATE',
+        compressionOptions:{level:9},
+        mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      });
+      hideProgress('docx');
+      const outFilename = currentFile.name.replace(/\.[^.]+$/, '') + '-compressed.docx';
+      showResult('docx', currentFile.size, out.size, out, outFilename);
+    }catch(e){
+      hideProgress('docx');
+      showErr('docx', 'Could not compress that document: ' + e.message);
+    }finally{
+      btn.disabled = false;
+    }
+  });
+})();
+
+// ===================== OFFLINE SUPPORT =====================
+// Registers sw.js (must be hosted in the same folder as this file). Only
+// works over https/localhost — browsers block service workers on file://,
+// which is expected: this is the piece that makes a *hosted* copy of this
+// page usable with zero internet after the first successful visit.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => {
+      console.warn('Offline caching unavailable:', err);
+    });
+  });
+}
+</script>
+</body>
+</html>
