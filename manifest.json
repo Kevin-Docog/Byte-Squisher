@@ -1,0 +1,31 @@
+{
+  "name": "Byte Squisher // Offline Compressor",
+  "short_name": "Byte Squisher",
+  "description": "A fully offline compressor for images, audio, PDFs, and DOCX files. Files never leave your device.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#08091a",
+  "theme_color": "#08091a",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
