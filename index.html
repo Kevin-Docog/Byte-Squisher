@@ -235,6 +235,54 @@
   }
   .err.show{display:block;}
 
+  /* ---- before/after image compare slider ---- */
+  .compare{
+    margin-top:18px; border:2px solid var(--border); background:var(--panel-2); padding:14px;
+  }
+  .compare .compare-label{
+    color:var(--dim); font-size:0.6rem; letter-spacing:0.5px; margin-bottom:10px; display:block;
+  }
+  .compare-stage{
+    position:relative; width:100%; max-height:420px; overflow:hidden; user-select:none;
+    border:2px solid var(--border-lit); background:#000;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .compare-stage img{
+    display:block; max-width:100%; max-height:420px; width:auto; height:auto; pointer-events:none;
+  }
+  .compare-after-wrap{
+    position:absolute; inset:0; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .compare-after-wrap img{ max-height:420px; }
+  .compare-handle{
+    position:absolute; top:0; bottom:0; width:3px; background:var(--green);
+    left:50%; transform:translateX(-50%); box-shadow:0 0 0 1px rgba(0,0,0,0.4);
+    pointer-events:none;
+  }
+  .compare-handle::after{
+    content:"◂▸"; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    background:var(--green); color:#14101f; font-size:0.65rem; font-weight:700;
+    padding:5px 6px; letter-spacing:1px; white-space:nowrap;
+  }
+  .compare-tag{
+    position:absolute; top:8px; font-size:0.6rem; letter-spacing:0.5px; font-weight:700;
+    background:rgba(8,9,26,0.75); color:var(--ink); padding:4px 8px; pointer-events:none;
+  }
+  .compare-tag.before{ left:8px; }
+  .compare-tag.after{ right:8px; }
+  .compare-slider{
+    -webkit-appearance:none; appearance:none; width:100%; margin-top:12px;
+    height:6px; background:var(--border); outline:none; cursor:ew-resize;
+  }
+  .compare-slider::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none; width:18px; height:18px; background:var(--green);
+    border:2px solid #14101f; cursor:ew-resize;
+  }
+  .compare-slider::-moz-range-thumb{
+    width:18px; height:18px; background:var(--green); border:2px solid #14101f; cursor:ew-resize; border-radius:0;
+  }
+
   footer{margin-top:36px; padding-top:18px; border-top:2px solid var(--border); color:var(--dim);
     font-size:0.7rem; line-height:1.75;}
   footer strong{color:var(--ink);}
@@ -1154,7 +1202,7 @@ function setProgress(tool, pct, label){
 function hideProgress(tool){
   document.getElementById('progress-'+tool).classList.remove('show');
 }
-function showResult(tool, originalSize, newSize, blob, filename){
+function showResult(tool, originalSize, newSize, blob, filename, compareUrls){
   const el = document.getElementById('result-'+tool);
   const pct = Math.max(0, Math.round((1 - newSize/originalSize) * 100));
   const url = URL.createObjectURL(blob);
@@ -1167,6 +1215,69 @@ function showResult(tool, originalSize, newSize, blob, filename){
     <a class="dl pxcut pxcut-sm" href="${url}" download="${filename}">⬇ DOWNLOAD RESULT</a>
   `;
   el.classList.add('show');
+  if(compareUrls){
+    buildCompareSlider(el, compareUrls.beforeUrl, compareUrls.afterUrl);
+  }
+}
+
+// ---------- before/after image compare slider ----------
+function buildCompareSlider(resultEl, beforeUrl, afterUrl){
+  const wrap = document.createElement('div');
+  wrap.className = 'compare';
+  wrap.innerHTML = `
+    <span class="compare-label">DRAG TO COMPARE — BEFORE / AFTER</span>
+    <div class="compare-stage">
+      <img class="compare-before-img" src="${beforeUrl}">
+      <div class="compare-after-wrap">
+        <img class="compare-after-img" src="${afterUrl}">
+      </div>
+      <div class="compare-handle"></div>
+      <span class="compare-tag before">BEFORE</span>
+      <span class="compare-tag after">AFTER</span>
+    </div>
+    <input type="range" class="compare-slider" min="0" max="100" value="50">
+  `;
+  resultEl.appendChild(wrap);
+
+  const stage = wrap.querySelector('.compare-stage');
+  const afterWrap = wrap.querySelector('.compare-after-wrap');
+  const handle = wrap.querySelector('.compare-handle');
+  const slider = wrap.querySelector('.compare-slider');
+  const beforeImg = wrap.querySelector('.compare-before-img');
+  const afterImg = wrap.querySelector('.compare-after-img');
+
+  function setPos(pct){
+    pct = Math.max(0, Math.min(100, pct));
+    afterWrap.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
+    handle.style.left = pct + '%';
+  }
+  slider.addEventListener('input', ()=> setPos(parseFloat(slider.value)));
+
+  // keep the reveal box the exact size of the (letterboxed) before image
+  function syncStageSize(){
+    afterWrap.style.width = beforeImg.clientWidth + 'px';
+    afterWrap.style.left = beforeImg.offsetLeft + 'px';
+    afterImg.style.width = beforeImg.clientWidth + 'px';
+    afterImg.style.height = beforeImg.clientHeight + 'px';
+  }
+  if(beforeImg.complete) syncStageSize();
+  beforeImg.addEventListener('load', syncStageSize);
+  window.addEventListener('resize', syncStageSize);
+
+  setPos(50);
+
+  // allow dragging directly on the stage too, not just the range input
+  let dragging = false;
+  function pctFromEvent(e){
+    const rect = stage.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    return (x / rect.width) * 100;
+  }
+  stage.addEventListener('mousedown', e=>{ dragging = true; const p = pctFromEvent(e); slider.value = p; setPos(p); });
+  window.addEventListener('mousemove', e=>{ if(dragging){ const p = pctFromEvent(e); slider.value = p; setPos(p); } });
+  window.addEventListener('mouseup', ()=> dragging = false);
+  stage.addEventListener('touchstart', e=>{ const p = pctFromEvent(e); slider.value = p; setPos(p); }, {passive:true});
+  stage.addEventListener('touchmove', e=>{ const p = pctFromEvent(e); slider.value = p; setPos(p); }, {passive:true});
 }
 
 // ---------- tabs ----------
@@ -1273,7 +1384,11 @@ function renderFileCard(tool, file, onClear){
       hideProgress('image');
       const ext = format === 'image/jpeg' ? 'jpg' : format === 'image/webp' ? 'webp' : 'png';
       const outName = currentFile.name.replace(/\.[^.]+$/, '') + '-compressed.' + ext;
-      showResult('image', currentFile.size, blob.size, blob, outName);
+      const afterUrl = URL.createObjectURL(blob);
+      showResult('image', currentFile.size, blob.size, blob, outName, {
+        beforeUrl: img.src,
+        afterUrl: afterUrl
+      });
     }catch(e){
       hideProgress('image');
       showErr('image', 'Could not compress that image: ' + e.message);
