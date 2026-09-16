@@ -2,8 +2,15 @@
 // Everything the app needs is already baked into index.html as a single
 // file, so all this worker has to do is cache that one file (plus the
 // manifest/icons) and serve it back when offline.
+//
+// Update flow: a new service worker installs in the background and then
+// waits (it does NOT self.skipWaiting() automatically) so an update never
+// yanks the rug out from under someone mid-task. index.html listens for
+// that waiting worker and shows an "update available" banner; only when
+// the person taps it do we post {type:'SKIP_WAITING'} here, which lets
+// this worker activate and take over.
 
-const CACHE_NAME = 'byte-squisher-v1';
+const CACHE_NAME = 'byte-squisher-v2';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -20,7 +27,13 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS))
   );
-  self.skipWaiting();
+  // Intentionally no self.skipWaiting() here — see note above.
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('activate', (event) => {

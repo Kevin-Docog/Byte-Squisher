@@ -170,6 +170,58 @@
     padding:5px 9px; font-family:inherit; flex:none; font-size:0.66rem; letter-spacing:0.5px;
   }
   .filecard button.clear:hover{ color:var(--red); border-color:var(--red); }
+  .filecard-list{ display:flex; flex-direction:column; gap:8px; margin-top:16px; }
+  .filecard-list .filecard{ margin-top:0; }
+  .clear-all{
+    align-self:flex-start; background:none; border:2px solid var(--border); color:var(--dim); cursor:pointer;
+    padding:7px 12px; font-family:inherit; font-size:0.66rem; letter-spacing:0.5px; margin-top:2px;
+  }
+  .clear-all:hover{ color:var(--red); border-color:var(--red); }
+  .add-more{
+    align-self:flex-start; background:none; border:2px dashed var(--border); color:var(--dim); cursor:pointer;
+    padding:7px 12px; font-family:inherit; font-size:0.66rem; letter-spacing:0.5px; margin-top:2px;
+  }
+  .add-more:hover{ color:var(--cyan); border-color:var(--cyan); }
+
+  .batch-list{ display:flex; flex-direction:column; gap:8px; margin-top:14px; }
+  .batch-row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    border:2px solid var(--border); background:var(--panel-2); padding:9px 12px; font-size:0.68rem;
+  }
+  .batch-row .name{color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;}
+  .batch-row .sizes{color:var(--dim); flex:none;}
+  .batch-row .sizes .hi{color:var(--green);}
+  .batch-row .fail{color:var(--red);}
+  .batch-row a.dl-mini{
+    flex:none; color:var(--green); text-decoration:none; border:2px solid var(--green);
+    padding:4px 8px; font-size:0.72rem; font-weight:700;
+  }
+  .batch-row a.dl-mini:hover{ background:var(--green); color:#14101f; }
+  .result a.dl.zip{ background:var(--gold); filter: drop-shadow(0 3px 0 #b8863a); margin-right:10px; }
+  .result a.dl.zip:hover{ opacity:0.92; }
+
+  #update-banner{
+    position:fixed; left:0; right:0; bottom:0; z-index:999;
+    display:flex; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap;
+    background:var(--panel-2); border-top:2px solid var(--gold);
+    padding:12px 18px; font-size:0.74rem; color:var(--ink);
+    box-shadow:0 -6px 20px rgba(0,0,0,0.4);
+  }
+  #update-banner .msg{ display:flex; align-items:center; gap:8px; }
+  #update-banner .dot{
+    width:8px; height:8px; flex:none; background:var(--gold);
+    box-shadow:0 0 0 4px rgba(216,168,74,0.25);
+  }
+  #update-banner button{
+    font-family:inherit; font-size:0.68rem; letter-spacing:0.5px; cursor:pointer;
+    padding:8px 14px; border:2px solid var(--border); background:none; color:var(--ink);
+  }
+  #update-banner button#update-banner-btn{
+    background:var(--gold); color:#14101f; border-color:var(--gold); font-weight:700;
+  }
+  #update-banner button#update-banner-btn:hover{ opacity:0.9; }
+  #update-banner button#update-banner-dismiss{ color:var(--dim); padding:8px 10px; }
+  #update-banner button#update-banner-dismiss:hover{ color:var(--red); border-color:var(--red); }
 
   .settings{margin-top:20px; display:grid; gap:16px;}
   .field label{display:block; font-size:0.7rem; color:var(--dim); margin-bottom:9px; letter-spacing:0.3px;}
@@ -317,8 +369,8 @@
         <p class="desc">Re-encodes your image at a lower quality and/or smaller dimensions using the canvas API. Output stays an image the whole way through — nothing leaves your device.</p>
         <div id="drop-image" class="drop pxcut pxcut-sm">
           <div class="icon">[ + ]</div>
-          <p>DROP AN IMAGE HERE, OR TAP TO CHOOSE ONE</p>
-          <input type="file" id="input-image" accept="image/*">
+          <p>DROP IMAGES HERE, OR TAP TO CHOOSE (MULTIPLE OK)</p>
+          <input type="file" id="input-image" accept="image/*" multiple>
         </div>
         <div id="filecard-image"></div>
         <div class="settings" id="settings-image" style="display:none">
@@ -353,8 +405,8 @@
         <p class="desc">Decodes the audio and re-encodes it as a real MP3 using a bundled in-browser encoder — works directly on the decoded samples, no real-time wait.</p>
         <div id="drop-audio" class="drop pxcut pxcut-sm">
           <div class="icon">[ + ]</div>
-          <p>DROP AN AUDIO FILE HERE, OR TAP TO CHOOSE ONE</p>
-          <input type="file" id="input-audio" accept="audio/*">
+          <p>DROP AUDIO FILES HERE, OR TAP TO CHOOSE (MULTIPLE OK)</p>
+          <input type="file" id="input-audio" accept="audio/*" multiple>
         </div>
         <div id="filecard-audio"></div>
         <div class="settings" id="settings-audio" style="display:none">
@@ -380,8 +432,8 @@
         <p class="desc">Standard mode re-saves the PDF with an optimized internal structure — safe, text stays selectable, modest savings. Aggressive mode rasterizes each page as a compressed image — shrinks scanned/image-heavy PDFs a lot more, but text is no longer selectable.</p>
         <div id="drop-pdf" class="drop pxcut pxcut-sm">
           <div class="icon">[ + ]</div>
-          <p>DROP A PDF HERE, OR TAP TO CHOOSE ONE</p>
-          <input type="file" id="input-pdf" accept="application/pdf">
+          <p>DROP PDFS HERE, OR TAP TO CHOOSE (MULTIPLE OK)</p>
+          <input type="file" id="input-pdf" accept="application/pdf" multiple>
         </div>
         <div id="filecard-pdf"></div>
         <div class="settings" id="settings-pdf" style="display:none">
@@ -409,8 +461,8 @@
         <p class="desc">A .docx file is a zip of XML and media. This re-encodes any embedded images at a lower quality and repacks the zip at maximum compression — text and formatting are untouched.</p>
         <div id="drop-docx" class="drop pxcut pxcut-sm">
           <div class="icon">[ + ]</div>
-          <p>DROP A .DOCX FILE HERE, OR TAP TO CHOOSE ONE</p>
-          <input type="file" id="input-docx" accept=".docx">
+          <p>DROP .DOCX FILES HERE, OR TAP TO CHOOSE (MULTIPLE OK)</p>
+          <input type="file" id="input-docx" accept=".docx" multiple>
         </div>
         <div id="filecard-docx"></div>
         <div class="settings" id="settings-docx" style="display:none">
@@ -1290,8 +1342,8 @@ document.querySelectorAll('.tab').forEach(btn=>{
   });
 });
 
-// ---------- generic dropzone wiring ----------
-function wireDrop(tool, onFile){
+// ---------- generic dropzone wiring (supports multiple files) ----------
+function wireDrop(tool, onFiles){
   const drop = document.getElementById('drop-'+tool);
   const input = document.getElementById('input-'+tool);
   drop.addEventListener('click', ()=>input.click());
@@ -1299,21 +1351,120 @@ function wireDrop(tool, onFile){
   drop.addEventListener('dragleave', ()=> drop.classList.remove('drag'));
   drop.addEventListener('drop', e=>{
     e.preventDefault(); drop.classList.remove('drag');
-    if(e.dataTransfer.files.length) onFile(e.dataTransfer.files[0]);
+    if(e.dataTransfer.files.length) onFiles(Array.from(e.dataTransfer.files));
   });
   input.addEventListener('change', e=>{
-    if(e.target.files.length) onFile(e.target.files[0]);
+    if(e.target.files.length) onFiles(Array.from(e.target.files));
+    input.value = ''; // allow re-adding the same file(s) later
   });
 }
-function renderFileCard(tool, file, onClear){
+
+// Renders the list of queued files for a tool (batch-aware).
+// files: array of File objects. onRemove(index) removes one, onClearAll() clears everything,
+// onAddMore() triggers the file picker again so more files can be queued.
+function renderFileList(tool, files, onRemove, onClearAll, onAddMore){
   const el = document.getElementById('filecard-'+tool);
-  el.innerHTML = `
+  if(!files.length){ el.innerHTML = ''; return; }
+  const rows = files.map((f,i)=>`
     <div class="filecard pxcut pxcut-sm">
-      <span class="name">${file.name}</span>
-      <span class="size">${fmtBytes(file.size)}</span>
-      <button class="clear">CLEAR</button>
+      <span class="name">${f.name}</span>
+      <span class="size">${fmtBytes(f.size)}</span>
+      <button class="clear" data-i="${i}">✕</button>
+    </div>`).join('');
+  el.innerHTML = `
+    <div class="filecard-list">
+      ${rows}
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="add-more">+ ADD MORE FILES</button>
+        ${files.length > 1 ? `<button class="clear-all">CLEAR ALL (${files.length})</button>` : ''}
+      </div>
     </div>`;
-  el.querySelector('.clear').addEventListener('click', onClear);
+  el.querySelectorAll('.clear').forEach(btn=>{
+    btn.addEventListener('click', ()=> onRemove(parseInt(btn.dataset.i, 10)));
+  });
+  const clearAllEl = el.querySelector('.clear-all');
+  if(clearAllEl) clearAllEl.addEventListener('click', onClearAll);
+  el.querySelector('.add-more').addEventListener('click', onAddMore);
+}
+
+// Picks a unique filename within a zip's namespace, so identically-named
+// source files (e.g. two different "photo.jpg") don't clobber each other.
+function uniqueZipName(usedNames, filename){
+  if(!usedNames.has(filename)){ usedNames.add(filename); return filename; }
+  let n = 2;
+  let candidate;
+  do{
+    candidate = filename.replace(/(\.[^.]+)?$/, m => `-${n}${m || ''}`);
+    n++;
+  } while(usedNames.has(candidate));
+  usedNames.add(candidate);
+  return candidate;
+}
+
+// Renders results for a batch of files (or just one), with a per-file download
+// link and a single "download all as zip" button that zips client-side with JSZip.
+function showBatchResults(tool, results){
+  const el = document.getElementById('result-'+tool);
+  const ok = results.filter(r=>!r.error);
+  const totalOriginal = ok.reduce((s,r)=>s+r.originalSize, 0);
+  const totalNew = ok.reduce((s,r)=>s+r.newSize, 0);
+  const pct = totalOriginal ? Math.max(0, Math.round((1 - totalNew/totalOriginal) * 100)) : 0;
+
+  const rows = results.map(r=>{
+    if(r.error){
+      return `<div class="batch-row"><span class="name">${r.name}</span><span class="sizes fail">FAILED</span></div>`;
+    }
+    const rowPct = Math.max(0, Math.round((1 - r.newSize/r.originalSize) * 100));
+    const url = URL.createObjectURL(r.blob);
+    return `<div class="batch-row">
+      <span class="name">${r.name}</span>
+      <span class="sizes">${fmtBytes(r.originalSize)} → <span class="hi">${fmtBytes(r.newSize)}</span> (${rowPct}%)</span>
+      <a class="dl-mini" href="${url}" download="${r.filename}">⬇</a>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="stats">
+      <div class="stat"><span class="k">FILES</span><span class="v">${ok.length}/${results.length}</span></div>
+      <div class="stat"><span class="k">TOTAL ORIGINAL</span><span class="v">${fmtBytes(totalOriginal)}</span></div>
+      <div class="stat"><span class="k">TOTAL COMPRESSED</span><span class="v hi">${fmtBytes(totalNew)}</span></div>
+      <div class="stat"><span class="k">SAVED</span><span class="v hi">${pct}%</span></div>
+    </div>
+    <div class="batch-list">${rows}</div>
+    ${ok.length > 1 ? `<button class="dl pxcut pxcut-sm zip" id="dlzip-${tool}">⬇ DOWNLOAD ALL AS ZIP</button>` : ''}
+  `;
+  el.classList.add('show');
+
+  const zipBtn = document.getElementById('dlzip-'+tool);
+  if(zipBtn){
+    zipBtn.addEventListener('click', async ()=>{
+      zipBtn.disabled = true;
+      const originalLabel = zipBtn.textContent;
+      zipBtn.textContent = 'ZIPPING…';
+      try{
+        const zip = new JSZip();
+        const usedNames = new Set();
+        for(const r of ok){
+          zip.file(uniqueZipName(usedNames, r.filename), r.blob);
+        }
+        const zipBlob = await zip.generateAsync({
+          type:'blob', compression:'DEFLATE', compressionOptions:{level:6}
+        });
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = tool + '-compressed.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }catch(err){
+        showErr(tool, 'Could not build the zip: ' + err.message);
+      }finally{
+        zipBtn.disabled = false;
+        zipBtn.textContent = originalLabel;
+      }
+    });
+  }
 }
 
 // ---------- offline pdf.js worker setup ----------
@@ -1330,7 +1481,7 @@ function renderFileCard(tool, file, onClear){
 
 // ===================== IMAGE =====================
 (function(){
-  let currentFile = null;
+  let files = [];
   const qSlider = document.getElementById('image-quality');
   const wSlider = document.getElementById('image-width');
   qSlider.addEventListener('input', ()=> document.getElementById('val-image-quality').textContent = qSlider.value);
@@ -1338,62 +1489,83 @@ function renderFileCard(tool, file, onClear){
     document.getElementById('val-image-width').textContent = wSlider.value >= 4000 ? 'no limit' : wSlider.value+'px';
   });
 
-  function reset(){
-    currentFile = null;
-    document.getElementById('filecard-image').innerHTML='';
-    document.getElementById('settings-image').style.display='none';
-    document.getElementById('go-image').disabled = true;
-    document.getElementById('result-image').classList.remove('show');
-    clearErr('image');
+  const goBtn = document.getElementById('go-image');
+
+  function updateUI(){
+    document.getElementById('settings-image').style.display = files.length ? 'grid' : 'none';
+    goBtn.disabled = files.length === 0;
+    goBtn.textContent = files.length > 1 ? `▶ COMPRESS ${files.length} IMAGES` : '▶ COMPRESS IMAGE';
+    renderFileList('image', files,
+      i=>{ files.splice(i,1); updateUI(); },
+      ()=>{ files = []; updateUI(); },
+      ()=> document.getElementById('input-image').click()
+    );
   }
-  wireDrop('image', file=>{
-    reset();
-    currentFile = file;
-    renderFileCard('image', file, reset);
-    document.getElementById('settings-image').style.display='grid';
-    document.getElementById('go-image').disabled = false;
+  wireDrop('image', newFiles=>{
+    clearErr('image');
+    document.getElementById('result-image').classList.remove('show');
+    files = files.concat(newFiles);
+    updateUI();
   });
 
-  document.getElementById('go-image').addEventListener('click', async ()=>{
-    if(!currentFile) return;
+  async function compressOne(file){
+    const img = await new Promise((res, rej)=>{
+      const i = new Image();
+      i.onload = ()=>res(i);
+      i.onerror = rej;
+      i.src = URL.createObjectURL(file);
+    });
+    let w = img.naturalWidth, h = img.naturalHeight;
+    const maxW = parseInt(wSlider.value, 10);
+    if(maxW < 4000 && w > maxW){
+      h = Math.round(h * (maxW / w));
+      w = maxW;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    const format = document.getElementById('image-format').value;
+    const quality = parseInt(qSlider.value,10)/100;
+    const blob = await new Promise(res=> canvas.toBlob(res, format, quality));
+    const ext = format === 'image/jpeg' ? 'jpg' : format === 'image/webp' ? 'webp' : 'png';
+    const outName = file.name.replace(/\.[^.]+$/, '') + '-compressed.' + ext;
+    return { blob, outName, beforeUrl: img.src };
+  }
+
+  goBtn.addEventListener('click', async ()=>{
+    if(!files.length) return;
     clearErr('image');
-    const btn = document.getElementById('go-image');
-    btn.disabled = true;
-    setProgress('image', 40, 'encoding…');
+    goBtn.disabled = true;
+    const results = [];
     try{
-      const img = await new Promise((res, rej)=>{
-        const i = new Image();
-        i.onload = ()=>res(i);
-        i.onerror = rej;
-        i.src = URL.createObjectURL(currentFile);
-      });
-      let w = img.naturalWidth, h = img.naturalHeight;
-      const maxW = parseInt(wSlider.value, 10);
-      if(maxW < 4000 && w > maxW){
-        h = Math.round(h * (maxW / w));
-        w = maxW;
+      for(let i=0; i<files.length; i++){
+        const file = files[i];
+        setProgress('image', Math.round((i/files.length)*100), `compressing ${i+1}/${files.length}…`);
+        try{
+          const { blob, outName } = await compressOne(file);
+          results.push({ name:file.name, originalSize:file.size, newSize:blob.size, blob, filename:outName });
+        }catch(e){
+          results.push({ name:file.name, error:true });
+        }
       }
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-      const format = document.getElementById('image-format').value;
-      const quality = parseInt(qSlider.value,10)/100;
-      const blob = await new Promise(res=> canvas.toBlob(res, format, quality));
       setProgress('image', 100, 'done');
       hideProgress('image');
-      const ext = format === 'image/jpeg' ? 'jpg' : format === 'image/webp' ? 'webp' : 'png';
-      const outName = currentFile.name.replace(/\.[^.]+$/, '') + '-compressed.' + ext;
-      const afterUrl = URL.createObjectURL(blob);
-      showResult('image', currentFile.size, blob.size, blob, outName, {
-        beforeUrl: img.src,
-        afterUrl: afterUrl
-      });
+      if(files.length === 1 && !results[0].error){
+        // Single file: keep the nice before/after compare slider.
+        const afterUrl = URL.createObjectURL(results[0].blob);
+        const beforeUrl = URL.createObjectURL(files[0]);
+        showResult('image', results[0].originalSize, results[0].newSize, results[0].blob, results[0].filename, {
+          beforeUrl, afterUrl
+        });
+      }else{
+        showBatchResults('image', results);
+      }
     }catch(e){
       hideProgress('image');
-      showErr('image', 'Could not compress that image: ' + e.message);
+      showErr('image', 'Could not compress: ' + e.message);
     }finally{
-      btn.disabled = false;
+      goBtn.disabled = false;
     }
   });
 })();
@@ -1461,7 +1633,7 @@ async function compressAudioNative(file, bitrateKbps, tool){
 
 // ===================== AUDIO =====================
 (function(){
-  let currentFile = null;
+  let files = [];
   document.querySelectorAll('#audio-bitrate button').forEach(b=>{
     b.addEventListener('click', ()=>{
       document.querySelectorAll('#audio-bitrate button').forEach(x=>x.classList.remove('active'));
@@ -1469,46 +1641,61 @@ async function compressAudioNative(file, bitrateKbps, tool){
     });
   });
 
-  function reset(){
-    currentFile = null;
-    document.getElementById('filecard-audio').innerHTML='';
-    document.getElementById('settings-audio').style.display='none';
-    document.getElementById('go-audio').disabled = true;
-    document.getElementById('result-audio').classList.remove('show');
-    clearErr('audio');
+  const goBtn = document.getElementById('go-audio');
+
+  function updateUI(){
+    document.getElementById('settings-audio').style.display = files.length ? 'grid' : 'none';
+    goBtn.disabled = files.length === 0;
+    goBtn.textContent = files.length > 1 ? `▶ COMPRESS ${files.length} FILES` : '▶ COMPRESS AUDIO';
+    renderFileList('audio', files,
+      i=>{ files.splice(i,1); updateUI(); },
+      ()=>{ files = []; updateUI(); },
+      ()=> document.getElementById('input-audio').click()
+    );
   }
-  wireDrop('audio', file=>{
-    reset();
-    currentFile = file;
-    renderFileCard('audio', file, reset);
-    document.getElementById('settings-audio').style.display='grid';
-    document.getElementById('go-audio').disabled = false;
+  wireDrop('audio', newFiles=>{
+    clearErr('audio');
+    document.getElementById('result-audio').classList.remove('show');
+    files = files.concat(newFiles);
+    updateUI();
   });
 
-  document.getElementById('go-audio').addEventListener('click', async ()=>{
-    if(!currentFile) return;
+  goBtn.addEventListener('click', async ()=>{
+    if(!files.length) return;
     clearErr('audio');
-    const btn = document.getElementById('go-audio');
-    btn.disabled = true;
-    setProgress('audio', 2, 'preparing…');
+    goBtn.disabled = true;
+    const bitrateKbps = parseInt(document.querySelector('#audio-bitrate button.active').dataset.v, 10);
+    const results = [];
     try{
-      const bitrateKbps = parseInt(document.querySelector('#audio-bitrate button.active').dataset.v, 10);
-      const blob = await compressAudioNative(currentFile, bitrateKbps, 'audio');
+      for(let i=0; i<files.length; i++){
+        const file = files[i];
+        const label = files.length > 1 ? `file ${i+1}/${files.length}: ` : '';
+        try{
+          const blob = await compressAudioNative(file, bitrateKbps, 'audio');
+          const outFilename = file.name.replace(/\.[^.]+$/, '') + '-compressed.mp3';
+          results.push({ name:file.name, originalSize:file.size, newSize:blob.size, blob, filename:outFilename });
+        }catch(e){
+          results.push({ name:file.name, error:true });
+        }
+      }
       hideProgress('audio');
-      const outFilename = currentFile.name.replace(/\.[^.]+$/, '') + '-compressed.mp3';
-      showResult('audio', currentFile.size, blob.size, blob, outFilename);
+      if(files.length === 1 && !results[0].error){
+        showResult('audio', results[0].originalSize, results[0].newSize, results[0].blob, results[0].filename);
+      }else{
+        showBatchResults('audio', results);
+      }
     }catch(e){
       hideProgress('audio');
-      showErr('audio', 'Could not compress that audio file: ' + e.message);
+      showErr('audio', 'Could not compress: ' + e.message);
     }finally{
-      btn.disabled = false;
+      goBtn.disabled = false;
     }
   });
 })();
 
 // ===================== PDF =====================
 (function(){
-  let currentFile = null;
+  let files = [];
 
   document.querySelectorAll('#pdf-mode button').forEach(b=>{
     b.addEventListener('click', ()=>{
@@ -1521,20 +1708,23 @@ async function compressAudioNative(file, bitrateKbps, tool){
     document.getElementById('val-pdf-quality').textContent = e.target.value;
   });
 
-  function reset(){
-    currentFile = null;
-    document.getElementById('filecard-pdf').innerHTML='';
-    document.getElementById('settings-pdf').style.display='none';
-    document.getElementById('go-pdf').disabled = true;
-    document.getElementById('result-pdf').classList.remove('show');
-    clearErr('pdf');
+  const goBtn = document.getElementById('go-pdf');
+
+  function updateUI(){
+    document.getElementById('settings-pdf').style.display = files.length ? 'grid' : 'none';
+    goBtn.disabled = files.length === 0;
+    goBtn.textContent = files.length > 1 ? `▶ COMPRESS ${files.length} PDFS` : '▶ COMPRESS PDF';
+    renderFileList('pdf', files,
+      i=>{ files.splice(i,1); updateUI(); },
+      ()=>{ files = []; updateUI(); },
+      ()=> document.getElementById('input-pdf').click()
+    );
   }
-  wireDrop('pdf', file=>{
-    reset();
-    currentFile = file;
-    renderFileCard('pdf', file, reset);
-    document.getElementById('settings-pdf').style.display='grid';
-    document.getElementById('go-pdf').disabled = false;
+  wireDrop('pdf', newFiles=>{
+    clearErr('pdf');
+    document.getElementById('result-pdf').classList.remove('show');
+    files = files.concat(newFiles);
+    updateUI();
   });
 
   async function compressStandard(file){
@@ -1571,55 +1761,67 @@ async function compressAudioNative(file, bitrateKbps, tool){
     return blob;
   }
 
-  document.getElementById('go-pdf').addEventListener('click', async ()=>{
-    if(!currentFile) return;
+  goBtn.addEventListener('click', async ()=>{
+    if(!files.length) return;
     clearErr('pdf');
-    const btn = document.getElementById('go-pdf');
-    btn.disabled = true;
-    setProgress('pdf', 10, 'working…');
+    goBtn.disabled = true;
+    const mode = document.querySelector('#pdf-mode button.active').dataset.v;
+    const quality = parseInt(document.getElementById('pdf-quality').value, 10);
+    const results = [];
     try{
-      const mode = document.querySelector('#pdf-mode button.active').dataset.v;
-      let blob;
-      if(mode === 'standard'){
-        blob = await compressStandard(currentFile);
-      }else{
-        const quality = parseInt(document.getElementById('pdf-quality').value, 10);
-        blob = await compressAggressive(currentFile, quality);
+      for(let i=0; i<files.length; i++){
+        const file = files[i];
+        setProgress('pdf', 10, files.length > 1 ? `file ${i+1}/${files.length}…` : 'working…');
+        try{
+          const blob = mode === 'standard'
+            ? await compressStandard(file)
+            : await compressAggressive(file, quality);
+          const outFilename = file.name.replace(/\.[^.]+$/, '') + '-compressed.pdf';
+          results.push({ name:file.name, originalSize:file.size, newSize:blob.size, blob, filename:outFilename });
+        }catch(e){
+          results.push({ name:file.name, error:true });
+        }
       }
       hideProgress('pdf');
-      const outFilename = currentFile.name.replace(/\.[^.]+$/, '') + '-compressed.pdf';
-      showResult('pdf', currentFile.size, blob.size, blob, outFilename);
+      if(files.length === 1 && !results[0].error){
+        showResult('pdf', results[0].originalSize, results[0].newSize, results[0].blob, results[0].filename);
+      }else{
+        showBatchResults('pdf', results);
+      }
     }catch(e){
       hideProgress('pdf');
-      showErr('pdf', 'Could not compress that PDF: ' + e.message);
+      showErr('pdf', 'Could not compress: ' + e.message);
     }finally{
-      btn.disabled = false;
+      goBtn.disabled = false;
     }
   });
 })();
 
 // ===================== DOCX =====================
 (function(){
-  let currentFile = null;
+  let files = [];
 
   document.getElementById('docx-quality').addEventListener('input', e=>{
     document.getElementById('val-docx-quality').textContent = e.target.value;
   });
 
-  function reset(){
-    currentFile = null;
-    document.getElementById('filecard-docx').innerHTML='';
-    document.getElementById('settings-docx').style.display='none';
-    document.getElementById('go-docx').disabled = true;
-    document.getElementById('result-docx').classList.remove('show');
-    clearErr('docx');
+  const goBtn = document.getElementById('go-docx');
+
+  function updateUI(){
+    document.getElementById('settings-docx').style.display = files.length ? 'grid' : 'none';
+    goBtn.disabled = files.length === 0;
+    goBtn.textContent = files.length > 1 ? `▶ COMPRESS ${files.length} DOCX FILES` : '▶ COMPRESS DOCX';
+    renderFileList('docx', files,
+      i=>{ files.splice(i,1); updateUI(); },
+      ()=>{ files = []; updateUI(); },
+      ()=> document.getElementById('input-docx').click()
+    );
   }
-  wireDrop('docx', file=>{
-    reset();
-    currentFile = file;
-    renderFileCard('docx', file, reset);
-    document.getElementById('settings-docx').style.display='grid';
-    document.getElementById('go-docx').disabled = false;
+  wireDrop('docx', newFiles=>{
+    clearErr('docx');
+    document.getElementById('result-docx').classList.remove('show');
+    files = files.concat(newFiles);
+    updateUI();
   });
 
   async function recompressImage(blob, quality){
@@ -1642,46 +1844,63 @@ async function compressAudioNative(file, bitrateKbps, tool){
     }
   }
 
-  document.getElementById('go-docx').addEventListener('click', async ()=>{
-    if(!currentFile) return;
+  async function compressOne(file, quality, tool, labelPrefix){
+    const zip = await JSZip.loadAsync(file);
+    const mediaFiles = Object.keys(zip.files).filter(name =>
+      /^word\/media\/.+\.(jpe?g|png)$/i.test(name)
+    );
+    let done = 0;
+    for(const name of mediaFiles){
+      const entry = zip.files[name];
+      const blob = await entry.async('blob');
+      try{
+        const compressed = await recompressImage(blob, quality);
+        if(compressed && compressed.size < blob.size){
+          zip.file(name, compressed);
+        }
+      }catch(imgErr){ /* skip images that fail to decode (e.g. wmf/emf) */ }
+      done++;
+      setProgress(tool, 10 + Math.round((done/Math.max(1,mediaFiles.length))*80), `${labelPrefix}re-encoding images ${done}/${mediaFiles.length}…`);
+    }
+    setProgress(tool, 95, labelPrefix + 'repacking…');
+    return zip.generateAsync({
+      type:'blob',
+      compression:'DEFLATE',
+      compressionOptions:{level:9},
+      mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    });
+  }
+
+  goBtn.addEventListener('click', async ()=>{
+    if(!files.length) return;
     clearErr('docx');
-    const btn = document.getElementById('go-docx');
-    btn.disabled = true;
-    setProgress('docx', 10, 'unpacking…');
+    goBtn.disabled = true;
+    const quality = parseInt(document.getElementById('docx-quality').value, 10) / 100;
+    const results = [];
     try{
-      const quality = parseInt(document.getElementById('docx-quality').value, 10) / 100;
-      const zip = await JSZip.loadAsync(currentFile);
-      const mediaFiles = Object.keys(zip.files).filter(name =>
-        /^word\/media\/.+\.(jpe?g|png)$/i.test(name)
-      );
-      let done = 0;
-      for(const name of mediaFiles){
-        const entry = zip.files[name];
-        const blob = await entry.async('blob');
+      for(let i=0; i<files.length; i++){
+        const file = files[i];
+        const labelPrefix = files.length > 1 ? `file ${i+1}/${files.length}: ` : '';
+        setProgress('docx', 10, labelPrefix + 'unpacking…');
         try{
-          const compressed = await recompressImage(blob, quality);
-          if(compressed && compressed.size < blob.size){
-            zip.file(name, compressed);
-          }
-        }catch(imgErr){ /* skip images that fail to decode (e.g. wmf/emf) */ }
-        done++;
-        setProgress('docx', 10 + Math.round((done/Math.max(1,mediaFiles.length))*80), `re-encoding images ${done}/${mediaFiles.length}…`);
+          const out = await compressOne(file, quality, 'docx', labelPrefix);
+          const outFilename = file.name.replace(/\.[^.]+$/, '') + '-compressed.docx';
+          results.push({ name:file.name, originalSize:file.size, newSize:out.size, blob:out, filename:outFilename });
+        }catch(e){
+          results.push({ name:file.name, error:true });
+        }
       }
-      setProgress('docx', 95, 'repacking…');
-      const out = await zip.generateAsync({
-        type:'blob',
-        compression:'DEFLATE',
-        compressionOptions:{level:9},
-        mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      });
       hideProgress('docx');
-      const outFilename = currentFile.name.replace(/\.[^.]+$/, '') + '-compressed.docx';
-      showResult('docx', currentFile.size, out.size, out, outFilename);
+      if(files.length === 1 && !results[0].error){
+        showResult('docx', results[0].originalSize, results[0].newSize, results[0].blob, results[0].filename);
+      }else{
+        showBatchResults('docx', results);
+      }
     }catch(e){
       hideProgress('docx');
-      showErr('docx', 'Could not compress that document: ' + e.message);
+      showErr('docx', 'Could not compress: ' + e.message);
     }finally{
-      btn.disabled = false;
+      goBtn.disabled = false;
     }
   });
 })();
@@ -1689,10 +1908,68 @@ async function compressAudioNative(file, bitrateKbps, tool){
 // Register the service worker so the app installs as a PWA and keeps
 // working offline after the first visit. Wrapped defensively since this
 // file may also be opened directly via file:// (no service worker there).
+//
+// This also watches for a newer service worker being installed in the
+// background (e.g. after the site itself was updated) and shows a small
+// "update available" banner rather than silently swapping versions out
+// from under an in-progress compression.
 if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch((err) => {
+    navigator.serviceWorker.register('sw.js').then((registration) => {
+
+      function showUpdateBanner(worker){
+        if (document.getElementById('update-banner')) return;
+        const bar = document.createElement('div');
+        bar.id = 'update-banner';
+        bar.innerHTML = `
+          <span class="msg"><span class="dot"></span>A new version of Byte Squisher is available.</span>
+          <button id="update-banner-btn">UPDATE NOW</button>
+          <button id="update-banner-dismiss" aria-label="Dismiss">✕</button>
+        `;
+        document.body.appendChild(bar);
+        document.getElementById('update-banner-btn').addEventListener('click', () => {
+          document.getElementById('update-banner-btn').textContent = 'UPDATING…';
+          worker.postMessage({ type: 'SKIP_WAITING' });
+        });
+        document.getElementById('update-banner-dismiss').addEventListener('click', () => bar.remove());
+      }
+
+      // A previous visit may have already downloaded an update that's
+      // sitting there waiting for the person to say go.
+      if (registration.waiting && navigator.serviceWorker.controller) {
+        showUpdateBanner(registration.waiting);
+      }
+
+      // A new service worker just finished downloading/installing.
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            showUpdateBanner(newWorker);
+          }
+        });
+      });
+
+      // Long-lived tabs (this is an offline tool people can leave open for
+      // ages) won't otherwise notice an update, so poll for one every so
+      // often and whenever the tab regains focus.
+      setInterval(() => registration.update().catch(() => {}), 60 * 60 * 1000);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') registration.update().catch(() => {});
+      });
+
+    }).catch((err) => {
       console.warn('Service worker registration failed:', err);
+    });
+
+    // Once the person taps "update now" the new worker calls skipWaiting()
+    // and takes control — reload so they're actually running the new code.
+    let refreshedAfterUpdate = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshedAfterUpdate) return;
+      refreshedAfterUpdate = true;
+      window.location.reload();
     });
   });
 }
